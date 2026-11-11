@@ -1,0 +1,223 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Proxy d'attaque ADS-B</title>
+<style>
+  :root{
+    --bg:#0e151c; --surface:#16202b; --surface2:#1d2a36; --line:#2a3a48;
+    --ink:#e7edf2; --soft:#9fb0bf; --accent:#e0a062; --accent2:#4fb3bd;
+    --danger:#e2808a; --ok:#6fc29a;
+    font-family:system-ui,-apple-system,sans-serif;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);line-height:1.5}
+  .wrap{max-width:820px;margin:0 auto;padding:24px 16px 48px}
+  h1{font-size:22px;margin:0 0 4px}
+  .sub{color:var(--soft);font-size:13px;margin:0 0 20px}
+  .status{display:flex;flex-wrap:wrap;gap:8px 20px;background:var(--surface);
+    border:1px solid var(--line);border-radius:8px;padding:12px 16px;margin-bottom:22px;font-size:13px}
+  .status b{color:var(--accent2)}
+  .status .err{color:var(--danger)}
+  h2{font-size:15px;text-transform:uppercase;letter-spacing:.06em;color:var(--soft);
+    margin:26px 0 10px;border-bottom:1px solid var(--line);padding-bottom:6px}
+  .src{display:flex;flex-wrap:wrap;gap:10px;align-items:center;background:var(--surface);
+    border:1px solid var(--line);border-radius:8px;padding:14px 16px}
+  .src label{display:flex;align-items:center;gap:7px;cursor:pointer}
+  select,button{font:inherit;background:var(--surface2);color:var(--ink);
+    border:1px solid var(--line);border-radius:6px;padding:7px 11px}
+  button{cursor:pointer;background:var(--accent);color:#1a1205;border:none;font-weight:600}
+  button:hover{filter:brightness(1.07)}
+  button.ghost{background:var(--surface2);color:var(--ink);border:1px solid var(--line);font-weight:500}
+  .cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(330px,1fr));gap:12px}
+  .card{background:var(--surface);border:1px solid var(--line);border-radius:9px;padding:15px 16px}
+  .card.on{border-color:var(--accent)}
+  .card h3{margin:0 0 6px;font-size:15px;display:flex;align-items:center;gap:8px}
+  .badge{font-size:10px;padding:1px 7px;border-radius:999px;border:1px solid var(--line);color:var(--soft)}
+  .badge.flag{color:var(--danger);border-color:var(--danger)}
+  .badge.soon{color:var(--accent2);border-color:var(--accent2)}
+  .card p{margin:0 0 12px;font-size:13px;color:var(--soft)}
+  .row{display:flex;justify-content:space-between;align-items:center}
+  .sw{position:relative;width:46px;height:26px;flex:none}
+  .sw input{opacity:0;width:0;height:0}
+  .sw span{position:absolute;inset:0;background:var(--surface2);border:1px solid var(--line);
+    border-radius:999px;transition:.15s}
+  .sw span::before{content:"";position:absolute;width:18px;height:18px;left:3px;top:3px;
+    background:var(--soft);border-radius:50%;transition:.15s}
+  .sw input:checked+span{background:var(--accent)}
+  .sw input:checked+span::before{transform:translateX(20px);background:#1a1205}
+  .note{font-size:12px;color:var(--soft);margin-top:14px}
+  code{background:var(--surface2);padding:1px 5px;border-radius:4px;font-size:.9em}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Proxy d'attaque ADS-B</h1>
+  <p class="sub">Banc d'essai ADS-B — pilotage de la source et des attaques.
+    co-atc lit <code>/aircraft.json</code> (source_type=readsb-api).</p>
+
+  <div class="status" id="status">Chargement…</div>
+
+  <h2>Source des données</h2>
+  <div class="src">
+    <label><input type="radio" name="src" value="opensky"> Live (OpenSky)</label>
+    <label><input type="radio" name="src" value="replay_file"> Historique (rejeu)</label>
+    <select id="replaySel" disabled></select>
+    <button id="applySrc">Appliquer</button>
+  </div>
+
+  <h2>Attaques</h2>
+  <div class="cards" id="attacks"></div>
+
+  <p class="note" id="engineNote"></p>
+
+  <h2>Vérité terrain <span class="badge soon">analyste</span></h2>
+  <div class="src" style="flex-direction:column;align-items:stretch;gap:10px">
+    <div class="row">
+      <span style="font-size:13px">Révéler dans co-atc : ajoute le préfixe <b>-&gt;</b> sur l'indicatif des leurres (désactivé = attaque réaliste)</span>
+      <label class="sw"><input type="checkbox" id="revealSw"><span></span></label>
+    </div>
+    <div class="row">
+      <span style="font-size:13px;color:var(--soft)">Liste des leurres (hors-bande, jamais vue par co-atc).</span>
+      <button class="ghost" id="revealBtn">Lister les leurres</button>
+    </div>
+    <div id="truth" style="font-size:12.5px;color:var(--soft)"></div>
+  </div>
+</div>
+
+<script>
+let STATE = null;
+
+async function load(){
+  STATE = await (await fetch('/api/state')).json();
+  render();
+}
+
+function render(){
+  const s = STATE;
+  // statut
+  document.getElementById('status').innerHTML =
+    `Source : <b>${s.upstream.mode}</b>` +
+    (s.upstream.mode==='replay_file' ? ` (<b>${s.upstream.replay_file||'—'}</b>)` : '') +
+    ` &nbsp;·&nbsp; Dernier lot servi : <b>${s.last_served_count}</b> cibles` +
+    ` &nbsp;·&nbsp; dont <b>${s.synthetic_count||0}</b> leurres` +
+    (s.reveal ? ` &nbsp;·&nbsp; <b style="color:var(--accent)">révélation "-&gt;" active</b>` : '') +
+    (s.last_error ? ` &nbsp;·&nbsp; <span class="err">erreur : ${s.last_error}</span>` : '');
+
+  // révélation
+  const rsw = document.getElementById('revealSw');
+  if (rsw) rsw.checked = !!s.reveal;
+
+  // source
+  document.querySelectorAll('input[name=src]').forEach(r=>{
+    r.checked = (r.value === s.upstream.mode);
+  });
+  const sel = document.getElementById('replaySel');
+  sel.innerHTML = (s.replays||[]).map(f=>`<option ${f===s.upstream.replay_file?'selected':''}>${f}</option>`).join('')
+      || '<option value="">(aucun fichier dans data/)</option>';
+  sel.disabled = (s.upstream.mode !== 'replay_file');
+
+  // attaques
+  document.getElementById('attacks').innerHTML = s.attacks_info.map(a=>{
+    const on = s.attacks_enabled[a.key];
+    const pv = (s.attacks_params||{})[a.key] || {};
+    const controls = (a.controls||[]).map(ct=>{
+      const cur = pv[ct.param];
+      let opts;
+      if (ct.type === 'target') {
+        const air = s.aircraft || [];
+        const inList = air.some(x => x.hex === cur);
+        opts = `<option value="" ${!cur?'selected':''}>— choisir —</option>` +
+          air.map(x=>`<option value="${x.hex}" ${x.hex===cur?'selected':''}>${(x.flight||'?')} (${x.hex})</option>`).join('') +
+          (cur && !inList ? `<option value="${cur}" selected>${cur} (hors zone)</option>` : '');
+      } else {
+        opts = ct.options.map(o=>`<option ${o==cur?'selected':''}>${o}</option>`).join('');
+      }
+      return `<label style="display:flex;gap:8px;align-items:center;font-size:12.5px;color:var(--soft);margin-top:10px">
+        ${ct.label} <select data-pkey="${a.key}" data-pname="${ct.param}" style="flex:1">${opts}</select></label>`;
+    }).join('');
+    return `<div class="card ${on?'on':''}">
+      <h3>${a.label}
+        ${a.flagship?'<span class="badge flag">phare</span>':''}
+      </h3>
+      <p>${a.desc}</p>
+      ${controls}
+      <div class="row" style="margin-top:12px">
+        <span class="badge">${a.key}</span>
+        <label class="sw"><input type="checkbox" data-key="${a.key}" ${on?'checked':''}>
+        <span></span></label>
+      </div>
+    </div>`;
+  }).join('');
+
+  document.querySelectorAll('input[data-key]').forEach(c=>{
+    c.addEventListener('change', async e=>{
+      const key=e.target.dataset.key, val=e.target.checked?'on':'off';
+      STATE = await (await fetch(`/api/attack/${key}/${val}`,{method:'POST'})).json();
+      render();
+    });
+  });
+  document.querySelectorAll('select[data-pkey]').forEach(sel=>{
+    sel.addEventListener('change', async e=>{
+      const key=e.target.dataset.pkey, name=e.target.dataset.pname, value=e.target.value;
+      STATE = await (await fetch(`/api/attack/${key}/params`,{
+        method:'POST', headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({[name]: value})
+      })).json();
+      render();
+    });
+  });
+
+  const anyImpl = s.attacks_info.some(a=>a.implemented);
+  document.getElementById('engineNote').textContent = anyImpl ? ''
+    : "Les interrupteurs enregistrent le choix ; le moteur d'attaques est encore inerte "
+      + "(transformations à implémenter : V1 clonage en INC-3, V2–V4 en INC-4).";
+}
+
+document.querySelectorAll('input[name=src]').forEach(r=>{
+  r.addEventListener('change', ()=>{
+    document.getElementById('replaySel').disabled = (r.value!=='replay_file');
+  });
+});
+
+document.getElementById('revealSw').addEventListener('change', async e=>{
+  const val = e.target.checked ? 'on' : 'off';
+  STATE = await (await fetch(`/api/reveal/${val}`,{method:'POST'})).json();
+  render();
+});
+
+document.getElementById('revealBtn').addEventListener('click', async ()=>{
+  const t = await (await fetch('/api/truth')).json();
+  const syn = t.synthetic || {}, spf = t.spoofed || {};
+  const synK = Object.keys(syn), spfK = Object.keys(spf);
+  if(!synK.length && !spfK.length){ document.getElementById('truth').textContent =
+    "Rien de falsifié au dernier cycle (activez une attaque)."; return; }
+  const synRows = synK.slice(0,200).map(h =>
+    `<tr><td style="padding:2px 10px 2px 0;font-family:monospace">${h}</td>`+
+    `<td style="padding:2px 0;color:var(--accent2)">${syn[h].kind==='ghost'?'fantôme':'copie de '+syn[h].clone_of} (${syn[h].attack})</td></tr>`
+  ).join('');
+  const spfRows = spfK.slice(0,200).map(h =>
+    `<tr><td style="padding:2px 10px 2px 0;font-family:monospace">${h}</td>`+
+    `<td style="padding:2px 0;color:var(--danger)">${spf[h].kind==='spoofed_squawk'?'squawk falsifié '+(spf[h].code||''):'position falsifiée'} (${spf[h].attack})</td></tr>`
+  ).join('');
+  document.getElementById('truth').innerHTML =
+    (synK.length?`<div style="margin:0 0 4px"><b>${synK.length}</b> faux avions :</div><table>${synRows}</table>`:'')+
+    (spfK.length?`<div style="margin:10px 0 4px"><b>${spfK.length}</b> avions réels falsifiés :</div><table>${spfRows}</table>`:'');
+});
+
+document.getElementById('applySrc').addEventListener('click', async ()=>{
+  const mode = document.querySelector('input[name=src]:checked')?.value || 'opensky';
+  const replay_file = document.getElementById('replaySel').value;
+  STATE = await (await fetch('/api/source',{
+    method:'POST', headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({mode, replay_file})
+  })).json();
+  render();
+});
+
+load();
+setInterval(load, 5000);
+</script>
+</body>
+</html>

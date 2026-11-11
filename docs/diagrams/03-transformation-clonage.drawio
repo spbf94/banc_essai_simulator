@@ -1,0 +1,54 @@
+<mxfile host="app.diagrams.net" type="device">
+  <diagram id="clone" name="03 - transformation clonage">
+    <mxGraphModel dx="1000" dy="650" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1000" pageHeight="560" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="title" value="Attaque V1 — clonage : 1 avion réel → 1 réel + N leurres indiscernables" style="text;html=1;align=left;verticalAlign=middle;fontSize=15;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="40" y="20" width="820" height="30" as="geometry" />
+        </mxCell>
+
+        <mxCell id="real" value="Avion RÉEL&#10;hex=A1B2C3&#10;vol=ACA123&#10;lat/lon réels" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="40" y="230" width="170" height="90" as="geometry" />
+        </mxCell>
+
+        <mxCell id="eng" value="Moteur de clonage&#10;N copies · même indicatif/type&#10;hex distincts · bruit position/cap/alt" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="320" y="220" width="230" height="110" as="geometry" />
+        </mxCell>
+
+        <mxCell id="c0" value="RÉEL (inchangé)&#10;hex=A1B2C3 · ACA123" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="680" y="120" width="230" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="c1" value="LEURRE 1&#10;hex=F0F0F1 · ACA123 · +0.02°" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;fontSize=11;dashed=1;" vertex="1" parent="1">
+          <mxGeometry x="680" y="190" width="230" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="c2" value="LEURRE 2&#10;hex=F0F0F2 · ACA123 · cap −15°" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;fontSize=11;dashed=1;" vertex="1" parent="1">
+          <mxGeometry x="680" y="260" width="230" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="c3" value="LEURRE N&#10;hex=F0F0Fn · ACA123 · alt −300ft" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;fontSize=11;dashed=1;" vertex="1" parent="1">
+          <mxGeometry x="680" y="330" width="230" height="50" as="geometry" />
+        </mxCell>
+
+        <mxCell id="note" value="co-atc affiche tous ces plots : même étiquette ACA123 en plusieurs endroits → le vrai est noyé parmi les leurres" style="text;html=1;align=left;verticalAlign=middle;fontSize=11;fontStyle=2;fontColor=#b85450;" vertex="1" parent="1">
+          <mxGeometry x="680" y="400" width="300" height="60" as="geometry" />
+        </mxCell>
+
+        <mxCell id="e1" style="edgeStyle=orthogonalEdgeStyle;html=1;endArrow=block;" edge="1" parent="1" source="real" target="eng">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e2" style="edgeStyle=orthogonalEdgeStyle;html=1;endArrow=block;" edge="1" parent="1" source="eng" target="c0">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e3" style="edgeStyle=orthogonalEdgeStyle;html=1;endArrow=block;dashed=1;" edge="1" parent="1" source="eng" target="c1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e4" style="edgeStyle=orthogonalEdgeStyle;html=1;endArrow=block;dashed=1;" edge="1" parent="1" source="eng" target="c2">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e5" style="edgeStyle=orthogonalEdgeStyle;html=1;endArrow=block;dashed=1;" edge="1" parent="1" source="eng" target="c3">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

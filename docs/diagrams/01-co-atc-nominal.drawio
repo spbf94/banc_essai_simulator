@@ -1,0 +1,28 @@
+<mxfile host="app.diagrams.net" type="device">
+  <diagram id="nominal" name="01 - co-atc nominal">
+    <mxGraphModel dx="900" dy="600" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="850" pageHeight="500" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="title" value="Architecture nominale de co-atc (avant attaque)" style="text;html=1;align=left;verticalAlign=middle;fontSize=16;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="40" y="20" width="560" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="src" value="Source ADS-B réelle&#10;(OpenSky / tar1090)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="40" y="200" width="160" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="ca" value="co-atc&#10;&#10;ingestion → détection&#10;conflits / phases →&#10;change detector → broadcast" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=12;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="330" y="180" width="260" height="120" as="geometry" />
+        </mxCell>
+        <mxCell id="op" value="Opérateur&#10;(carte temps réel)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="690" y="200" width="130" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="e1" value="HTTP poll&#10;aircraft.json" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontSize=10;endArrow=block;" edge="1" parent="1" source="src" target="ca">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e2" value="WebSocket" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontSize=10;endArrow=block;" edge="1" parent="1" source="ca" target="op">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

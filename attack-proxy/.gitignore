@@ -1,0 +1,9 @@
+__pycache__/
+*.pyc
+.venv/
+data/*.json
+ground_truth.jsonl
+*.jsonl
+*credentials*.json
+*.secret
+*.pem
